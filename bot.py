@@ -28,12 +28,18 @@ tree = bot.tree
 # =========================
 @bot.event
 async def on_ready():
-    await tree.sync(guild=discord.Object(id=GUILD_ID))
-    print(f"✅ Bot connecté : {bot.user}")
+    # ⚠️ SUPPRESSION DES COMMANDES GLOBALES
+    tree.clear_commands(guild=None)
+    await tree.sync()
 
-def get_staff_log_channel(guild: discord.Guild):
-    return discord.utils.get(guild.text_channels, name=STAFF_LOG_CHANNEL_NAME)
+    print("🔥 Global slash commands PURGED")
 
+    # ✅ Recréation des commandes du serveur
+    guild = discord.Object(id=GUILD_ID)
+    await tree.sync(guild=guild)
+
+    print("✅ Guild slash commands synced")
+    print(f"Bot connecté : {bot.user}")
 # =========================
 # TICKET PANEL
 # =========================
