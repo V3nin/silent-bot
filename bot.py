@@ -275,6 +275,7 @@ async def wl(
 # UNWL
 # =========================
 
+
 from utils.whitelist import remove
 
 @tree.command(
@@ -296,6 +297,74 @@ async def unwl(
     await interaction.response.send_message(
         f"❌ {user.mention} retiré de la whitelist."
     )
+
+# =========================
+# LOCK
+# =========================
+@tree.command(
+    name="lock",
+    description="Verrouiller le salon (empêche les messages)",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.checks.has_role(STAFF_ROLE_NAME)
+async def lock(interaction: discord.Interaction):
+    channel = interaction.channel
+    guild = interaction.guild
+
+    if not isinstance(channel, discord.TextChannel):
+        await interaction.response.send_message(
+            "❌ Cette commande fonctionne uniquement dans un salon texte.",
+            ephemeral=True
+        )
+        return
+
+    overwrites = channel.overwrites
+
+    # Bloque @everyone
+    overwrites[guild.default_role] = discord.PermissionOverwrite(
+        send_messages=False
+    )
+
+    await channel.edit(overwrites=overwrites)
+
+    await interaction.response.send_message(
+        f"🔒 Salon **{channel.name}** verrouillé."
+    )
+# =========================
+# UNLOCK
+# =========================
+
+@tree.command(
+    name="unlock",
+    description="Déverrouiller le salon",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.checks.has_role(STAFF_ROLE_NAME)
+async def unlock(interaction: discord.Interaction):
+    channel = interaction.channel
+    guild = interaction.guild
+
+    if not isinstance(channel, discord.TextChannel):
+        await interaction.response.send_message(
+            "❌ Cette commande fonctionne uniquement dans un salon texte.",
+            ephemeral=True
+        )
+        return
+
+    overwrites = channel.overwrites
+
+    # Supprime le blocage de @everyone
+    if guild.default_role in overwrites:
+        overwrites[guild.default_role] = discord.PermissionOverwrite(
+            send_messages=None
+        )
+
+    await channel.edit(overwrites=overwrites)
+
+    await interaction.response.send_message(
+        f"🔓 Salon **{channel.name}** déverrouillé."
+    )
+
 # =========================
 # RUN
 # =========================
