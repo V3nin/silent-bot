@@ -42,6 +42,40 @@ async def on_ready():
     print("✅ Guild slash commands synced")
     print(f"Bot connecté : {bot.user}")
 # =========================
+# TICKET CLIENTS
+# =========================
+async def create_client_ticket(guild, user, days_remaining):
+    category = guild.get_channel(TICKET_CATEGORY_ID)
+
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        user: discord.PermissionOverwrite(read_messages=True, send_messages=True),
+    }
+
+    staff_role = discord.utils.get(guild.roles, name=STAFF_ROLE_NAME)
+    if staff_role:
+        overwrites[staff_role] = discord.PermissionOverwrite(
+            read_messages=True,
+            send_messages=True
+        )
+
+    channel_name = f"{days_remaining}j-{user.name}".lower()
+
+    channel = await guild.create_text_channel(
+        name=channel_name,
+        category=category,
+        overwrites=overwrites
+    )
+
+    await channel.send(
+        f"🔐 **Espace personnel de {user.mention}**\n\n"
+        f"📅 Durée restante : **{days_remaining} jour(s)**\n\n"
+        "⚠️ Ce salon est **confidentiel**.\n"
+        "La clé VPN sera envoyée ici."
+    )
+
+    return channel
+# =========================
 # TICKET PANEL
 # =========================
 @tree.command(
@@ -249,32 +283,31 @@ async def update(interaction: discord.Interaction, message: str):
 # WL
 # =========================
 from utils.whitelist import add
+# + la fonction create_client_ticket
 
 @tree.command(
     name="wl",
-    description="Whitelist un client avec durée (en jours)",
+    description="Whitelist un client et ouvre son ticket privé",
     guild=discord.Object(id=GUILD_ID)
 )
 @app_commands.checks.has_role(STAFF_ROLE_NAME)
-async def wl(
-    interaction: discord.Interaction,
-    user: discord.Member,
-    jours: int
-):
+async def wl(interaction, user: discord.Member, jours: int):
     role = discord.utils.get(interaction.guild.roles, name=CLIENT_ROLE_NAME)
-    if not role:
-        await interaction.response.send_message(
-            "❌ Rôle Client introuvable.", ephemeral=True
-        )
-        return
 
     await user.add_roles(role)
     add(user.id, jours)
 
-    await interaction.response.send_message(
-        f"✅ {user.mention} whitelist **{jours} jour(s)**."
+    ticket = await create_client_ticket(
+        interaction.guild,
+        user,
+        jours
     )
 
+    await interaction.response.send_message(
+        f"✅ {user.mention} whitelist **{jours} jour(s)**.\n"
+        f"🎫 Ticket personnel créé : {ticket.mention}",
+        ephemeral=True
+    )
 # =========================
 # UNWL
 # =========================
