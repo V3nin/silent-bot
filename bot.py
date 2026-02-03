@@ -145,9 +145,10 @@ async def embed_pricing(interaction: discord.Interaction):
         )
 
         await channel.send(
-            f"{i.user.mention} merci pour ton intérêt.\n"
-            "Indique **l’offre choisie** et **le moyen de paiement**."
-        )
+    f"{i.user.mention} merci pour ton intérêt.\n"
+    "Indique **l’offre choisie** et **le moyen de paiement**.",
+    view=CloseTicketView()
+)
 
         log = get_staff_log_channel(guild)
         if log:
@@ -381,7 +382,6 @@ class CloseTicketView(discord.ui.View):
     )
     async def close(self, interaction: discord.Interaction, button: discord.ui.Button):
         channel = interaction.channel
-
         await interaction.response.send_message(
             "🗑️ Ticket fermé dans 3 secondes...",
             ephemeral=True
