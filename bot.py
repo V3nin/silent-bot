@@ -1,4 +1,5 @@
 import discord
+import asyncio
 from discord import app_commands
 from discord.ext import commands
 
@@ -77,9 +78,11 @@ async def ticket_panel(interaction: discord.Interaction):
         )
 
         await channel.send(
-            f"{i.user.mention} bienvenue.\n"
-            "Merci d’indiquer **le sujet de votre demande**."
-        )
+            f"{i.user.mention} merci pour ton intérêt.\n"
+            "Indique **l’offre choisie** et **le moyen de paiement**.",
+            view=CloseTicketView()
+)
+
 
         log = get_staff_log_channel(guild)
         if log:
@@ -364,7 +367,27 @@ async def unlock(interaction: discord.Interaction):
     await interaction.response.send_message(
         f"🔓 Salon **{channel.name}** déverrouillé."
     )
+# =========================
+# CLOSE
+# =========================
+class CloseTicketView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
 
+    @discord.ui.button(
+        label="🔒 Fermer le ticket",
+        style=discord.ButtonStyle.danger,
+        custom_id="close_ticket"
+    )
+    async def close(self, interaction: discord.Interaction, button: discord.ui.Button):
+        channel = interaction.channel
+
+        await interaction.response.send_message(
+            "🗑️ Ticket fermé dans 3 secondes...",
+            ephemeral=True
+        )
+        await asyncio.sleep(3)
+        await channel.delete()
 # =========================
 # RUN
 # =========================
