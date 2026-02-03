@@ -244,25 +244,58 @@ async def update(interaction: discord.Interaction, message: str):
 # =========================
 # WL
 # =========================
+from utils.whitelist import add
+
 @tree.command(
     name="wl",
-    description="Attribuer le rôle Client",
+    description="Whitelist un client avec durée (en jours)",
     guild=discord.Object(id=GUILD_ID)
 )
 @app_commands.checks.has_role(STAFF_ROLE_NAME)
-async def wl(interaction: discord.Interaction, user: discord.Member):
+async def wl(
+    interaction: discord.Interaction,
+    user: discord.Member,
+    jours: int
+):
     role = discord.utils.get(interaction.guild.roles, name=CLIENT_ROLE_NAME)
     if not role:
-        await interaction.response.send_message("❌ Rôle Client introuvable.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Rôle Client introuvable.", ephemeral=True
+        )
         return
 
     await user.add_roles(role)
-    await interaction.response.send_message(f"✅ **{user}** est maintenant Client.")
+    add(user.id, jours)
 
-    log = get_staff_log_channel(interaction.guild)
-    if log:
-        await log.send(f"👤 **{user}** whitelist par **{interaction.user}**")
+    await interaction.response.send_message(
+        f"✅ {user.mention} whitelist **{jours} jour(s)**."
+    )
 
+# =========================
+# UNWL
+# =========================
+
+from utils.whitelist import remove
+
+@tree.command(
+    name="unwl",
+    description="Retirer un client de la whitelist",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.checks.has_role(STAFF_ROLE_NAME)
+async def unwl(
+    interaction: discord.Interaction,
+    user: discord.Member
+):
+    role = discord.utils.get(interaction.guild.roles, name=CLIENT_ROLE_NAME)
+    if role and role in user.roles:
+        await user.remove_roles(role)
+
+    remove(user.id)
+
+    await interaction.response.send_message(
+        f"❌ {user.mention} retiré de la whitelist."
+    )
 # =========================
 # RUN
 # =========================

@@ -1,41 +1,34 @@
-import json
-import time
-import os
+import json, time, os
 
-WHITELIST_FILE = "data/whitelist.json"
+FILE = "data/whitelist.json"
 
-def load_wl():
-    if not os.path.exists(WHITELIST_FILE):
+def load():
+    if not os.path.exists(FILE):
         return {}
-    with open(WHITELIST_FILE, "r") as f:
+    with open(FILE, "r") as f:
         return json.load(f)
 
-def save_wl(wl):
-    with open(WHITELIST_FILE, "w") as f:
-        json.dump(wl, f, indent=4)
+def save(wl):
+    with open(FILE, "w") as f:
+        json.dump(wl, f, indent=2)
 
-def add_wl(user_id: int, duration_seconds: int):
-    wl = load_wl()
-    wl[str(user_id)] = {
-        "expires_at": int(time.time()) + duration_seconds
-    }
-    save_wl(wl)
+def add(user_id: int, days: int):
+    wl = load()
+    wl[str(user_id)] = int(time.time()) + days * 86400
+    save(wl)
 
-def remove_wl(user_id: int):
-    wl = load_wl()
+def remove(user_id: int):
+    wl = load()
     wl.pop(str(user_id), None)
-    save_wl(wl)
+    save(wl)
 
-def is_wl_valid(user_id: int):
-    wl = load_wl()
-    entry = wl.get(str(user_id))
-
-    if not entry:
+def is_valid(user_id: int):
+    wl = load()
+    exp = wl.get(str(user_id))
+    if not exp:
         return False
-
-    if entry["expires_at"] < time.time():
+    if exp < time.time():
         wl.pop(str(user_id))
-        save_wl(wl)
+        save(wl)
         return False
-
     return True

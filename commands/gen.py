@@ -12,3 +12,12 @@ class Gen(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Gen(bot))
+
+from utils.whitelist import is_valid
+
+if not is_valid(interaction.user.id):
+    await interaction.response.send_message(
+        "⛔ Accès expiré ou non autorisé.", ephemeral=True
+    )
+    return
+
