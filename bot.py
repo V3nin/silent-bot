@@ -56,7 +56,7 @@ TICKET_CATEGORY_ID = 1467934909665513595
 STAFF_ROLE_NAME = "𝘝𝘦𝘯𝘥𝘦𝘶𝘳"
 CLIENT_ROLE_NAME = "𝘊𝘭𝘪𝘦𝘯𝘵𝘴"
 STAFF_LOG_CHANNEL_NAME = "staff-logs"
-KEYS_DB_PATH = "/opt/silentvpn/keys.db"
+KEYS_DB_PATH = "./keys.db"
 ADD_PEER_BIN = "/usr/local/bin/add-peer-conf"
 
 # =========================
