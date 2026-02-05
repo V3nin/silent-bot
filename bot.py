@@ -3,6 +3,7 @@ import asyncio
 import sqlite3
 import subprocess
 import random
+import requests
 import string
 import time
 from discord import app_commands
@@ -477,47 +478,40 @@ class CloseTicketView(discord.ui.View):
 )
 @app_commands.checks.has_role(STAFF_ROLE_NAME)
 async def genkey(interaction: discord.Interaction, durée: str):
-    if durée.lower() == "infinite":
-        expires_at = None
-        label = "∞"
-    else:
-        try:
-            jours = int(durée)
-            expires_at = int(time.time()) + jours * 86400
-            label = f"{jours} jours"
-        except ValueError:
-            await interaction.response.send_message(
-                "❌ Durée invalide (nombre ou `infinite`).",
-                ephemeral=True
-            )
-            return
+    await interaction.response.defer(ephemeral=True)
 
-    proc = subprocess.run(
-        [ADD_PEER_BIN],
-        capture_output=True,
-        text=True
-    )
+    payload = {
+        "duration": durée
+    }
 
-    if proc.returncode != 0 or not proc.stdout:
-        await interaction.response.send_message(
-            "❌ Erreur serveur lors de la génération VPN.",
+    try:
+        r = requests.post(
+            "http://68.183.0.250:8080/genkey",
+            json=payload,
+            timeout=10
+        )
+    except Exception as e:
+        await interaction.followup.send(
+            "❌ Impossible de contacter le serveur VPN.",
             ephemeral=True
         )
         return
 
-    conf = proc.stdout
-    pubkey = extract_pubkey(conf)
-    token = generate_token()
+    if r.status_code != 200:
+        await interaction.followup.send(
+            "❌ Erreur serveur lors de la génération.",
+            ephemeral=True
+        )
+        return
 
-    save_access_key(token, pubkey, expires_at)
+    data = r.json()
 
-    await interaction.response.send_message(
+    await interaction.followup.send(
         f"🔐 **Clé SILENT VPN générée**\n\n"
-        f"**Clé :** `{token}`\n"
-        f"**Durée :** {label}",
+        f"**Clé :** `{data['token']}`\n"
+        f"**Durée :** {data['label']}",
         ephemeral=True
     )
-
 # =========================
 # RUN
 # =========================
