@@ -1,7 +1,49 @@
 import discord
 import asyncio
+import sqlite3
+import subprocess
+import random
+import string
+import time
 from discord import app_commands
 from discord.ext import commands
+
+def init_keys_db():
+    conn = sqlite3.connect(KEYS_DB_PATH)
+    c = conn.cursor()
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS access_keys (
+            token TEXT PRIMARY KEY,
+            pubkey TEXT NOT NULL,
+            expires_at INTEGER,
+            created_at INTEGER NOT NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def generate_token():
+    parts = [
+        ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        for _ in range(4)
+    ]
+    return "SILENT-" + "-".join(parts)
+
+def extract_pubkey(conf: str) -> str:
+    for line in conf.splitlines():
+        if line.startswith("PublicKey"):
+            return line.split("=")[1].strip()
+    raise ValueError("PublicKey not found")
+
+def save_access_key(token, pubkey, expires_at):
+    conn = sqlite3.connect(KEYS_DB_PATH)
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO access_keys(token, pubkey, expires_at, created_at) VALUES (?,?,?,?)",
+        (token, pubkey, expires_at, int(time.time()))
+    )
+    conn.commit()
+    conn.close()
 
 # =========================
 # CONFIG
@@ -14,6 +56,8 @@ TICKET_CATEGORY_ID = 1467934909665513595
 STAFF_ROLE_NAME = "𝘝𝘦𝘯𝘥𝘦𝘶𝘳"
 CLIENT_ROLE_NAME = "𝘊𝘭𝘪𝘦𝘯𝘵𝘴"
 STAFF_LOG_CHANNEL_NAME = "staff-logs"
+KEYS_DB_PATH = "/opt/silentvpn/keys.db"
+ADD_PEER_BIN = "/usr/local/bin/add-peer-conf"
 
 # =========================
 # BOT INIT
@@ -29,6 +73,7 @@ tree = bot.tree
 # =========================
 @bot.event
 async def on_ready():
+    init_keys_db()
     # ⚠️ SUPPRESSION DES COMMANDES GLOBALES
     tree.clear_commands(guild=None)
     await tree.sync()
@@ -421,6 +466,58 @@ class CloseTicketView(discord.ui.View):
         )
         await asyncio.sleep(3)
         await channel.delete()
+# =========================
+# GENKEY
+# =========================
+
+@tree.command(
+    name="genkey",
+    description="Génère une clé VPN (jours ou infinite)",
+    guild=discord.Object(id=GUILD_ID)
+)
+@app_commands.checks.has_role(STAFF_ROLE_NAME)
+async def genkey(interaction: discord.Interaction, durée: str):
+    if durée.lower() == "infinite":
+        expires_at = None
+        label = "∞"
+    else:
+        try:
+            jours = int(durée)
+            expires_at = int(time.time()) + jours * 86400
+            label = f"{jours} jours"
+        except ValueError:
+            await interaction.response.send_message(
+                "❌ Durée invalide (nombre ou `infinite`).",
+                ephemeral=True
+            )
+            return
+
+    proc = subprocess.run(
+        [ADD_PEER_BIN],
+        capture_output=True,
+        text=True
+    )
+
+    if proc.returncode != 0 or not proc.stdout:
+        await interaction.response.send_message(
+            "❌ Erreur serveur lors de la génération VPN.",
+            ephemeral=True
+        )
+        return
+
+    conf = proc.stdout
+    pubkey = extract_pubkey(conf)
+    token = generate_token()
+
+    save_access_key(token, pubkey, expires_at)
+
+    await interaction.response.send_message(
+        f"🔐 **Clé SILENT VPN générée**\n\n"
+        f"**Clé :** `{token}`\n"
+        f"**Durée :** {label}",
+        ephemeral=True
+    )
+
 # =========================
 # RUN
 # =========================
