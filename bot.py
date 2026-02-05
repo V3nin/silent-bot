@@ -59,6 +59,7 @@ CLIENT_ROLE_NAME = "𝘊𝘭𝘪𝘦𝘯𝘵𝘴"
 STAFF_LOG_CHANNEL_NAME = "staff-logs"
 KEYS_DB_PATH = "./keys.db"
 ADD_PEER_BIN = "/usr/local/bin/add-peer-conf"
+API_BASE_URL = "http://68.183.0.250:8080"
 
 # =========================
 # BOT INIT
